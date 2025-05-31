@@ -3,8 +3,6 @@
 ## 1. Tables
 
 ### 1.1 users
-This table is managed by Supabase Auth.
-
 - id: UUID PRIMARY KEY
 - first_name: VARCHAR NOT NULL
 - last_name: VARCHAR NOT NULL

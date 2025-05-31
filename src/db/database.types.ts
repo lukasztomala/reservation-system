@@ -44,16 +44,18 @@ export type Database = {
           staff_id: string
           start_time: string
           status: Database["public"]["Enums"]["appointment_status"]
+          updated_at: string
         }
         Insert: {
           cancellation_reason?: string | null
           client_id: string
           created_at?: string
           end_time: string
-          id: string
+          id?: string
           staff_id: string
           start_time: string
           status?: Database["public"]["Enums"]["appointment_status"]
+          updated_at?: string
         }
         Update: {
           cancellation_reason?: string | null
@@ -64,6 +66,7 @@ export type Database = {
           staff_id?: string
           start_time?: string
           status?: Database["public"]["Enums"]["appointment_status"]
+          updated_at?: string
         }
         Relationships: [
           {
@@ -90,6 +93,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          updated_at: string
         }
         Insert: {
           appointment_id: string
@@ -97,7 +101,8 @@ export type Database = {
           author_role: Database["public"]["Enums"]["note_author_role"]
           content: string
           created_at?: string
-          id: string
+          id?: string
+          updated_at?: string
         }
         Update: {
           appointment_id?: string
@@ -106,6 +111,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -127,30 +133,36 @@ export type Database = {
       users: {
         Row: {
           birth_date: string
+          created_at: string
           email: string
           first_name: string
           id: string
           last_name: string
           phone: string
           role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
         }
         Insert: {
           birth_date: string
+          created_at?: string
           email: string
           first_name: string
-          id: string
+          id?: string
           last_name: string
           phone: string
-          role: Database["public"]["Enums"]["user_role"]
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
         }
         Update: {
           birth_date?: string
+          created_at?: string
           email?: string
           first_name?: string
           id?: string
           last_name?: string
           phone?: string
           role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
         }
         Relationships: []
       }
