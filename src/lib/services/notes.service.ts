@@ -1,4 +1,16 @@
-import type { CreateNoteCommand, CreateNoteResponseDto, NoteInsert, Note, NoteAuthorRole, UserRole } from "../../types";
+import type {
+  CreateNoteCommand,
+  CreateNoteResponseDto,
+  NoteInsert,
+  Note,
+  NoteAuthorRole,
+  UserRole,
+  PatientNotesRequestDto,
+  PatientNotesResponseDto,
+  PatientNoteDto,
+  PaginationDto,
+  UpdateNoteResponseDto,
+} from "../../types";
 import { supabaseClient } from "../../db/supabase.client";
 
 /**
@@ -80,6 +92,38 @@ export class NotesService {
         success: false,
         error: {
           message: "Failed to validate appointment access",
+          code: "DATABASE_ERROR",
+        },
+      };
+    }
+  }
+
+  /**
+   * Checks if patient exists in the system
+   */
+  private async validatePatientExists(
+    patientId: string
+  ): Promise<{ success: true } | { success: false; error: { message: string; code: string } }> {
+    try {
+      const { data: patient, error } = await supabaseClient.from("users").select("id").eq("id", patientId).single();
+
+      if (error || !patient) {
+        return {
+          success: false,
+          error: {
+            message: "Patient not found",
+            code: "NOT_FOUND",
+          },
+        };
+      }
+
+      return { success: true };
+    } catch (error) {
+      console.error("Error validating patient existence:", error);
+      return {
+        success: false,
+        error: {
+          message: "Failed to validate patient",
           code: "DATABASE_ERROR",
         },
       };
@@ -195,6 +239,215 @@ export class NotesService {
       return { success: true, data: notes || [] };
     } catch (error) {
       console.error("Error in getAppointmentNotes:", error);
+      return {
+        success: false,
+        error: {
+          message: "Internal server error",
+          code: "INTERNAL_ERROR",
+        },
+      };
+    }
+  }
+
+  /**
+   * Gets all notes for a specific patient across all their appointments (staff only)
+   */
+  async getPatientNotes(
+    request: PatientNotesRequestDto,
+    userId: string,
+    userRole: UserRole
+  ): Promise<
+    { success: true; data: PatientNotesResponseDto } | { success: false; error: { message: string; code: string } }
+  > {
+    try {
+      // Only staff can access patient notes
+      if (userRole !== "staff") {
+        return {
+          success: false,
+          error: {
+            message: "Staff access required",
+            code: "ACCESS_DENIED",
+          },
+        };
+      }
+
+      // Validate patient exists
+      const patientValidation = await this.validatePatientExists(request.patient_id);
+      if (!patientValidation.success) {
+        return { success: false, error: patientValidation.error };
+      }
+
+      // Use defaults for pagination if not provided
+      const page = request.page ?? 1;
+      const limit = request.limit ?? 20;
+      const sort = request.sort ?? "created_at";
+      const order = request.order ?? "desc";
+
+      // Calculate pagination
+      const offset = (page - 1) * limit;
+      const orderDirection = order === "asc" ? { ascending: true } : { ascending: false };
+
+      // Get total count
+      const { count: totalCount, error: countError } = await supabaseClient
+        .from("notes")
+        .select("*, appointments!inner(client_id)", { count: "exact", head: true })
+        .eq("appointments.client_id", request.patient_id);
+
+      if (countError) {
+        console.error("Error counting patient notes:", countError);
+        return {
+          success: false,
+          error: {
+            message: "Failed to count notes",
+            code: "DATABASE_ERROR",
+          },
+        };
+      }
+
+      // Get notes with joins
+      const { data: notes, error } = await supabaseClient
+        .from("notes")
+        .select(
+          `
+          id,
+          appointment_id,
+          author_id,
+          author_role,
+          content,
+          created_at,
+          appointments!inner(
+            id,
+            start_time,
+            client_id
+          ),
+          users!notes_author_id_fkey(
+            first_name,
+            last_name
+          )
+        `
+        )
+        .eq("appointments.client_id", request.patient_id)
+        .order(sort, orderDirection)
+        .range(offset, offset + limit - 1);
+
+      if (error) {
+        console.error("Error fetching patient notes:", error);
+        return {
+          success: false,
+          error: {
+            message: "Failed to fetch patient notes",
+            code: "DATABASE_ERROR",
+          },
+        };
+      }
+
+      // Transform data to PatientNoteDto format
+      const transformedNotes: PatientNoteDto[] = (notes || []).map((note) => ({
+        id: note.id,
+        appointment_id: note.appointment_id,
+        appointment_date: note.appointments.start_time,
+        author_id: note.author_id,
+        author_name: `${note.users.first_name} ${note.users.last_name}`,
+        author_role: note.author_role,
+        content: note.content,
+        created_at: note.created_at,
+      }));
+
+      const pagination: PaginationDto = {
+        page: page,
+        limit: limit,
+        total: totalCount || 0,
+      };
+
+      return {
+        success: true,
+        data: {
+          notes: transformedNotes,
+          pagination,
+        },
+      };
+    } catch (error) {
+      console.error("Error in getPatientNotes:", error);
+      return {
+        success: false,
+        error: {
+          message: "Internal server error",
+          code: "INTERNAL_ERROR",
+        },
+      };
+    }
+  }
+
+  /**
+   * Updates a note's content (only the author can update their own note)
+   */
+  async updateNote(
+    noteId: string,
+    content: string,
+    userId: string
+  ): Promise<
+    { success: true; data: UpdateNoteResponseDto } | { success: false; error: { message: string; code: string } }
+  > {
+    try {
+      // First, check if note exists and user is the author
+      const { data: existingNote, error: fetchError } = await supabaseClient
+        .from("notes")
+        .select("id, author_id, content")
+        .eq("id", noteId)
+        .single();
+
+      if (fetchError || !existingNote) {
+        return {
+          success: false,
+          error: {
+            message: "Note not found",
+            code: "NOT_FOUND",
+          },
+        };
+      }
+
+      // Check if user is the author
+      if (existingNote.author_id !== userId) {
+        return {
+          success: false,
+          error: {
+            message: "Access denied. You can only edit your own notes",
+            code: "ACCESS_DENIED",
+          },
+        };
+      }
+
+      // Update the note
+      const { data: updatedNote, error: updateError } = await supabaseClient
+        .from("notes")
+        .update({
+          content: content.trim(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", noteId)
+        .select("id, content, updated_at")
+        .single();
+
+      if (updateError || !updatedNote) {
+        console.error("Error updating note:", updateError);
+        return {
+          success: false,
+          error: {
+            message: "Failed to update note",
+            code: "DATABASE_ERROR",
+          },
+        };
+      }
+
+      const response: UpdateNoteResponseDto = {
+        id: updatedNote.id,
+        content: updatedNote.content,
+        updated_at: updatedNote.updated_at,
+      };
+
+      return { success: true, data: response };
+    } catch (error) {
+      console.error("Error in updateNote:", error);
       return {
         success: false,
         error: {

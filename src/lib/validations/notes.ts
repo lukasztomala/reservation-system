@@ -14,7 +14,7 @@ export const updateNoteRequestSchema = z.object({
   content: z
     .string()
     .min(1, "Content cannot be empty")
-    .max(5000, "Content cannot exceed 5000 characters")
+    .max(10000, "Content cannot exceed 10000 characters")
     .trim(),
 });
 
@@ -35,9 +35,25 @@ export const notesListQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+// Schema for patient notes query parameters (GET /api/notes)
+export const patientNotesQuerySchema = z.object({
+  patient_id: z.string().uuid("Invalid patient ID format"),
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(20),
+  sort: z.enum(["created_at"]).default("created_at"),
+  order: z.enum(["asc", "desc"]).default("desc"),
+});
+
+// Schema for note ID path parameter in URL (for PATCH)
+export const noteIdPathParamSchema = z.object({
+  id: z.string().uuid("Invalid note ID format"),
+});
+
 // Types derived from schemas
 export type CreateNoteRequest = z.infer<typeof createNoteRequestSchema>;
 export type UpdateNoteRequest = z.infer<typeof updateNoteRequestSchema>;
 export type AppointmentIdParam = z.infer<typeof appointmentIdParamSchema>;
 export type NoteIdParam = z.infer<typeof noteIdParamSchema>;
-export type NotesListQuery = z.infer<typeof notesListQuerySchema>; 
+export type NotesListQuery = z.infer<typeof notesListQuerySchema>;
+export type PatientNotesQuery = z.infer<typeof patientNotesQuerySchema>;
+export type NoteIdPathParam = z.infer<typeof noteIdPathParamSchema>; 
