@@ -368,6 +368,14 @@ export interface GenerateAvailableSlotsCommand {
   };
 }
 
+// Command for generating AI recommendations
+export interface GenerateAIRecommendationsCommand {
+  patient_id: string;
+  notes_content: string[];
+  request_type: "all_notes" | "single_note";
+  staff_id: string;
+}
+
 // ============================================================================
 // Utility Types
 // ============================================================================
