@@ -1,6 +1,6 @@
 Możliwe że projekt nie kompiluje sie usuń package-lock.json i zrób npm install
 
-Przygotuj wywołania curl @me.ts @user.service.t
+Przygotuj wywołania curl dla @available.ts @appointment.availability.service.ts i umieść rezultat w pliku .ai/api/[endpoint name]-curl-examples.md pamietaj aby uzywać portu 3000 w przykładach
 
 
 dodaj w supabase.client.ts

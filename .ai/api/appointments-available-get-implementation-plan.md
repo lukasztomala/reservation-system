@@ -55,7 +55,7 @@ Endpoint służy do pobierania dostępnych terminów wizyt w określonym zakresi
       "time": "10:00",
       "staff_id": "550e8400-e29b-41d4-a716-446655440000",
       "staff_name": "Dr Anna Kowalska",
-      "duration_hours": 1.5,
+      "duration_hours": 2,
       "appointment_type": "first_visit"
     },
     {
@@ -99,7 +99,7 @@ Endpoint służy do pobierania dostępnych terminów wizyt w określonym zakresi
 // Pseudo-kod
 function generateTimeSlots(startDate, endDate, workingHours, appointmentType) {
   const slots = [];
-  const duration = appointmentType === 'first_visit' ? 90 : 60; // minutes
+  const duration = appointmentType === 'first_visit' ? 120 : 60; // minutes
   
   for (date = startDate; date <= endDate; date++) {
     for (time = workingHours.start; time < workingHours.end; time += duration) {
