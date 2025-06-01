@@ -1,246 +1,475 @@
-# GET /api/appointments/appointments - Curl Examples
+# POST & GET /api/appointments - Curl Examples
 
-This document provides curl examples for testing the `GET /api/appointments/appointments` endpoint without authentication.
+This document provides curl examples for testing the `/api/appointments` endpoint with both GET and POST methods.
 
 ## Base Configuration
 
 ```bash
 BASE_URL="http://localhost:3000"
-ENDPOINT="/api/appointments/appointments"
+ENDPOINT="/api/appointments"
+# Sample JWT token for testing (replace with real token)
+AUTH_TOKEN="your-jwt-token-here"
 ```
 
-## Basic Requests
+## POST /api/appointments - Create New Appointment
 
-### 1. Get All Appointments (Default Parameters)
+### Authentication Headers
+
+All POST requests require authentication:
 
 ```bash
-curl -X GET "$BASE_URL$ENDPOINT"
+-H "Authorization: Bearer $AUTH_TOKEN" \
+-H "Content-Type: application/json"
 ```
 
-### 2. Basic Request with JSON Headers
+### 1. Create First Visit Appointment (120 minutes)
+
+```bash
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a",
+    "staff_id": "721a5ad5-aebb-4c67-8d4d-c5423995b61e",
+    "start_time": "2024-12-20T10:00:00.000Z",
+    "appointment_type": "first_visit",
+    "client_note": "First consultation appointment"
+  }'
+```
+
+### 2. Create Follow-up Appointment (60 minutes)
+
+```bash
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a",
+    "staff_id": "721a5ad5-aebb-4c67-8d4d-c5423995b61e",
+    "start_time": "2024-12-20T14:00:00.000Z",
+    "appointment_type": "follow_up"
+  }'
+```
+
+### 3. Create Appointment with Long Client Note
+
+```bash
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a",
+    "staff_id": "721a5ad5-aebb-4c67-8d4d-c5423995b61e",
+    "start_time": "2024-12-21T09:00:00.000Z",
+    "appointment_type": "first_visit",
+    "client_note": "Patient has specific dietary restrictions and allergies. Previous treatments included acupuncture and herbal medicine. Looking for natural pain management solutions for chronic back pain."
+  }'
+```
+
+### 4. Create Appointment for Different Time Zones
+
+```bash
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a",
+    "staff_id": "721a5ad5-aebb-4c67-8d4d-c5423995b61e",
+    "start_time": "2024-12-22T15:30:00.000Z",
+    "appointment_type": "follow_up",
+    "client_note": "Afternoon session"
+  }'
+```
+
+## Error Testing - POST /api/appointments
+
+### 5. Test Missing Authentication (401 Unauthorized)
+
+```bash
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a",
+    "staff_id": "721a5ad5-aebb-4c67-8d4d-c5423995b61e",
+    "start_time": "2024-12-20T10:00:00.000Z",
+    "appointment_type": "first_visit"
+  }'
+```
+
+### 6. Test Invalid JSON (400 Bad Request)
+
+```bash
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"client_id": "invalid-json"'
+```
+
+### 7. Test Missing Required Fields (400 Validation Error)
+
+```bash
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a"
+  }'
+```
+
+### 8. Test Invalid UUID Format (400 Validation Error)
+
+```bash
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "invalid-uuid",
+    "staff_id": "also-invalid",
+    "start_time": "2024-12-20T10:00:00.000Z",
+    "appointment_type": "first_visit"
+  }'
+```
+
+### 9. Test Invalid Date Format (400 Validation Error)
+
+```bash
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a",
+    "staff_id": "721a5ad5-aebb-4c67-8d4d-c5423995b61e",
+    "start_time": "2024-12-20 10:00:00",
+    "appointment_type": "first_visit"
+  }'
+```
+
+### 10. Test Invalid Appointment Type (400 Validation Error)
+
+```bash
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a",
+    "staff_id": "721a5ad5-aebb-4c67-8d4d-c5423995b61e",
+    "start_time": "2024-12-20T10:00:00.000Z",
+    "appointment_type": "invalid_type"
+  }'
+```
+
+### 11. Test Past Appointment Date (400 Validation Error)
+
+```bash
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a",
+    "staff_id": "721a5ad5-aebb-4c67-8d4d-c5423995b61e",
+    "start_time": "2023-01-01T10:00:00.000Z",
+    "appointment_type": "first_visit"
+  }'
+```
+
+### 12. Test Client Note Too Long (400 Validation Error)
+
+```bash
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a",
+    "staff_id": "721a5ad5-aebb-4c67-8d4d-c5423995b61e",
+    "start_time": "2024-12-20T10:00:00.000Z",
+    "appointment_type": "first_visit",
+    "client_note": "'$(printf 'A%.0s' {1..501})'"
+  }'
+```
+
+### 13. Test Non-existent Client ID (403 Forbidden)
+
+```bash
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "00000000-0000-0000-0000-000000000000",
+    "staff_id": "721a5ad5-aebb-4c67-8d4d-c5423995b61e",
+    "start_time": "2024-12-20T10:00:00.000Z",
+    "appointment_type": "first_visit"
+  }'
+```
+
+### 14. Test Non-existent Staff ID (403 Forbidden)
+
+```bash
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a",
+    "staff_id": "00000000-0000-0000-0000-000000000000",
+    "start_time": "2024-12-20T10:00:00.000Z",
+    "appointment_type": "first_visit"
+  }'
+```
+
+### 15. Test Time Slot Conflict (409 Conflict)
+
+```bash
+# First create an appointment
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a",
+    "staff_id": "721a5ad5-aebb-4c67-8d4d-c5423995b61e",
+    "start_time": "2024-12-20T10:00:00.000Z",
+    "appointment_type": "first_visit"
+  }'
+
+# Then try to create overlapping appointment
+curl -X POST "$BASE_URL$ENDPOINT" \
+  -H "Authorization: Bearer $AUTH_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a",
+    "staff_id": "721a5ad5-aebb-4c67-8d4d-c5423995b61e",
+    "start_time": "2024-12-20T11:00:00.000Z",
+    "appointment_type": "follow_up"
+  }'
+```
+
+## GET /api/appointments - List Appointments
+
+### 16. Get All Appointments (Default Parameters)
 
 ```bash
 curl -X GET "$BASE_URL$ENDPOINT" \
   -H "Content-Type: application/json"
 ```
 
-## Filtering Examples
-
-### 3. Filter by Client ID
+### 17. Filter by Client ID
 
 ```bash
 curl -X GET "$BASE_URL$ENDPOINT?client_id=e4ca431b-b0da-4683-8765-c624f8c5651a" \
   -H "Content-Type: application/json"
 ```
 
-### 4. Filter by Staff ID
+### 18. Filter by Staff ID
 
 ```bash
 curl -X GET "$BASE_URL$ENDPOINT?staff_id=721a5ad5-aebb-4c67-8d4d-c5423995b61e" \
   -H "Content-Type: application/json"
 ```
 
-### 5. Filter by Status
+### 19. Filter by Status
 
 ```bash
 curl -X GET "$BASE_URL$ENDPOINT?status=booked" \
   -H "Content-Type: application/json"
 ```
 
-### 6. Filter by Date Range
+### 20. Filter by Date Range
 
 ```bash
-curl -X GET "$BASE_URL$ENDPOINT?start_date=2024-01-01&end_date=2024-12-31" \
+curl -X GET "$BASE_URL$ENDPOINT?start_date=2024-12-01&end_date=2024-12-31" \
   -H "Content-Type: application/json"
 ```
 
-### 7. Multiple Filters
+### 21. Multiple Filters
 
 ```bash
-curl -X GET "$BASE_URL$ENDPOINT?client_id=e4ca431b-b0da-4683-8765-c624f8c5651a&status=booked&start_date=2024-01-01" \
+curl -X GET "$BASE_URL$ENDPOINT?client_id=e4ca431b-b0da-4683-8765-c624f8c5651a&status=booked&start_date=2024-12-01" \
   -H "Content-Type: application/json"
 ```
 
-## Pagination Examples
-
-### 8. Basic Pagination
+### 22. Pagination
 
 ```bash
 curl -X GET "$BASE_URL$ENDPOINT?page=2&limit=10" \
   -H "Content-Type: application/json"
 ```
 
-### 9. Pagination with Small Limit
-
-```bash
-curl -X GET "$BASE_URL$ENDPOINT?page=1&limit=5" \
-  -H "Content-Type: application/json"
-```
-
-### 10. Pagination with Maximum Limit
-
-```bash
-curl -X GET "$BASE_URL$ENDPOINT?page=1&limit=100" \
-  -H "Content-Type: application/json"
-```
-
-## Sorting Examples
-
-### 11. Sort by Start Time (Ascending)
-
-```bash
-curl -X GET "$BASE_URL$ENDPOINT?sort=start_time&order=asc" \
-  -H "Content-Type: application/json"
-```
-
-### 12. Sort by Start Time (Descending)
+### 23. Sorting by Start Time (Descending)
 
 ```bash
 curl -X GET "$BASE_URL$ENDPOINT?sort=start_time&order=desc" \
   -H "Content-Type: application/json"
 ```
 
-### 13. Sort by Created Date (Newest First)
+### 24. Sorting by Created At (Ascending)
 
 ```bash
-curl -X GET "$BASE_URL$ENDPOINT?sort=created_at&order=desc" \
+curl -X GET "$BASE_URL$ENDPOINT?sort=created_at&order=asc" \
   -H "Content-Type: application/json"
 ```
 
-## Complex Queries
-
-### 14. Complex Query with All Parameters
+### 25. Combined Filters, Pagination and Sorting
 
 ```bash
-curl -X GET "$BASE_URL$ENDPOINT?client_id=e4ca431b-b0da-4683-8765-c624f8c5651a&status=booked&start_date=2024-01-01&end_date=2024-12-31&page=1&limit=20&sort=start_time&order=asc" \
+curl -X GET "$BASE_URL$ENDPOINT?staff_id=721a5ad5-aebb-4c67-8d4d-c5423995b61e&status=booked&page=1&limit=5&sort=start_time&order=desc" \
   -H "Content-Type: application/json"
 ```
 
-### 15. Staff View with Multiple Filters
+## Error Testing - GET /api/appointments
+
+### 26. Test Invalid Client ID Format (400 Validation Error)
 
 ```bash
-curl -X GET "$BASE_URL$ENDPOINT?staff_id=721a5ad5-aebb-4c67-8d4d-c5423995b61e&status=blocked&page=1&limit=50&sort=created_at&order=desc" \
+curl -X GET "$BASE_URL$ENDPOINT?client_id=invalid-uuid" \
   -H "Content-Type: application/json"
 ```
 
-## Validation Error Examples
-
-### 16. Invalid Status
+### 27. Test Invalid Status Value (400 Validation Error)
 
 ```bash
-curl -X GET "$BASE_URL$ENDPOINT?status=invalid" \
+curl -X GET "$BASE_URL$ENDPOINT?status=invalid_status" \
   -H "Content-Type: application/json"
 ```
 
-### 17. Invalid Client ID Format
+### 28. Test Invalid Date Format (400 Validation Error)
 
 ```bash
-curl -X GET "$BASE_URL$ENDPOINT?client_id=not-a-uuid" \
+curl -X GET "$BASE_URL$ENDPOINT?start_date=2024/12/01" \
   -H "Content-Type: application/json"
 ```
 
-### 18. Invalid Date Format
-
-```bash
-curl -X GET "$BASE_URL$ENDPOINT?start_date=2024/01/01" \
-  -H "Content-Type: application/json"
-```
-
-### 19. Invalid Page Number
+### 29. Test Invalid Page Number (400 Validation Error)
 
 ```bash
 curl -X GET "$BASE_URL$ENDPOINT?page=0" \
   -H "Content-Type: application/json"
 ```
 
-### 20. Limit Too High
+### 30. Test Invalid Limit (400 Validation Error)
 
 ```bash
 curl -X GET "$BASE_URL$ENDPOINT?limit=101" \
   -H "Content-Type: application/json"
 ```
 
-### 21. Invalid Sort Field
+### 31. Test Invalid Sort Field (400 Validation Error)
 
 ```bash
 curl -X GET "$BASE_URL$ENDPOINT?sort=invalid_field" \
   -H "Content-Type: application/json"
 ```
 
-### 22. Invalid Order Direction
+### 32. Test Invalid Order Value (400 Validation Error)
 
 ```bash
-curl -X GET "$BASE_URL$ENDPOINT?order=invalid" \
+curl -X GET "$BASE_URL$ENDPOINT?order=invalid_order" \
   -H "Content-Type: application/json"
 ```
 
-## Testing with jq (JSON Parsing)
+## Success Response Examples
 
-### 23. Pretty Print Response
+### POST Success Response (201 Created)
 
-```bash
-curl -X GET "$BASE_URL$ENDPOINT" \
-  -H "Content-Type: application/json" | jq '.'
+```json
+{
+  "id": "550e8400-e29b-41d4-a716-446655440000",
+  "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a",
+  "staff_id": "721a5ad5-aebb-4c67-8d4d-c5423995b61e",
+  "start_time": "2024-12-20T10:00:00.000Z",
+  "end_time": "2024-12-20T12:00:00.000Z",
+  "status": "booked",
+  "created_at": "2024-12-15T08:30:00.000Z",
+  "updated_at": "2024-12-15T08:30:00.000Z"
+}
 ```
 
-### 24. Extract Only Appointments
+### GET Success Response (200 OK)
 
-```bash
-curl -X GET "$BASE_URL$ENDPOINT" \
-  -H "Content-Type: application/json" | jq '.data.appointments'
+```json
+{
+  "success": true,
+  "data": {
+    "appointments": [
+      {
+        "id": "550e8400-e29b-41d4-a716-446655440000",
+        "client_id": "e4ca431b-b0da-4683-8765-c624f8c5651a",
+        "staff_id": "721a5ad5-aebb-4c67-8d4d-c5423995b61e",
+        "client_name": "John Doe",
+        "staff_name": "Dr. Smith",
+        "start_time": "2024-12-20T10:00:00.000Z",
+        "end_time": "2024-12-20T12:00:00.000Z",
+        "status": "booked",
+        "cancellation_reason": null,
+        "created_at": "2024-12-15T08:30:00.000Z",
+        "updated_at": "2024-12-15T08:30:00.000Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 1,
+      "total_pages": 1
+    }
+  }
+}
 ```
 
-### 25. Extract Pagination Info
+## Error Response Examples
 
-```bash
-curl -X GET "$BASE_URL$ENDPOINT" \
-  -H "Content-Type: application/json" | jq '.data.pagination'
+### Validation Error (400 Bad Request)
+
+```json
+{
+  "error": {
+    "message": "Validation failed",
+    "code": "VALIDATION_ERROR",
+    "field_errors": {
+      "client_id": ["Invalid client_id format"],
+      "start_time": ["Cannot create appointments in the past"]
+    }
+  }
+}
 ```
 
-### 26. Count Results
+### Authentication Error (401 Unauthorized)
 
-```bash
-curl -X GET "$BASE_URL$ENDPOINT" \
-  -H "Content-Type: application/json" | jq '.data.appointments | length'
+```json
+{
+  "error": {
+    "message": "Authentication required",
+    "code": "UNAUTHORIZED"
+  }
+}
 ```
 
-## Environment Variable Setup
+### Permission Error (403 Forbidden)
 
-For easier testing, you can set up environment variables:
-
-```bash
-export APPOINTMENT_API_URL="http://localhost:3000/api/appointments/appointments"
-
-# Then use in requests:
-curl -X GET "$APPOINTMENT_API_URL?page=1&limit=10"
+```json
+{
+  "error": {
+    "message": "Cannot create appointment for other clients",
+    "code": "FORBIDDEN"
+  }
+}
 ```
 
-## Batch Testing Script
+### Conflict Error (409 Conflict)
 
-```bash
-#!/bin/bash
-BASE_URL="http://localhost:3000/api/appointments/appointments"
-
-echo "Testing basic request..."
-curl -X GET "$BASE_URL"
-
-echo -e "\n\nTesting with pagination..."
-curl -X GET "$BASE_URL?page=1&limit=5"
-
-echo -e "\n\nTesting with sorting..."
-curl -X GET "$BASE_URL?sort=start_time&order=desc"
-
-echo -e "\n\nTesting validation error..."
-curl -X GET "$BASE_URL?status=invalid"
+```json
+{
+  "error": {
+    "message": "Time slot conflicts with existing appointment",
+    "code": "TIME_SLOT_CONFLICT"
+  }
+}
 ```
 
-## Notes
+## Testing Notes
 
-- All requests return JSON responses
-- The endpoint supports both query string parameters and no parameters (defaults)
-- Validation errors return detailed error information
-- All date filters expect YYYY-MM-DD format
-- UUID parameters must be valid UUIDs
-- Pagination starts from page 1
-- Default limit is 20, maximum is 100
-- Default sort is by `start_time` in ascending order
+1. **Authentication**: Replace `$AUTH_TOKEN` with a valid JWT token from your authentication system
+2. **UUIDs**: Use real UUIDs from your database for client_id and staff_id
+3. **Dates**: Ensure start_time is in the future when testing appointment creation
+4. **Time Zones**: All timestamps should be in UTC (ISO8601 format with Z suffix)
+5. **Appointment Types**:
+   - `first_visit`: 120 minutes duration
+   - `follow_up`: 60 minutes duration
+6. **Status Values**: `booked`, `blocked`, `cancelled`
+7. **Client Note**: Maximum 500 characters

@@ -7,7 +7,7 @@ Endpoint służy do tworzenia nowych wizyt w systemie rezerwacji. Obsługuje zł
 **Kluczowe funkcje:**
 - Tworzenie nowych wizyt z automatycznym obliczaniem end_time
 - Walidacja dostępności time slots (konflikt detection)
-- Różne czasy trwania: first_visit (90 min) vs follow_up (60 min)
+- Różne czasy trwania: first_visit (120 min) vs follow_up (60 min)
 - Kontrola uprawnień - clients tylko dla siebie, staff dla wszystkich
 - Integracja z exclusion constraint bazy danych
 
@@ -94,7 +94,7 @@ Endpoint służy do tworzenia nowych wizyt w systemie rezerwacji. Obsługuje zł
 ```typescript
 function calculateEndTime(startTime: string, appointmentType: string): string {
   const start = new Date(startTime);
-  const durationMinutes = appointmentType === 'first_visit' ? 90 : 60;
+  const durationMinutes = appointmentType === 'first_visit' ? 120 : 60;
   const end = new Date(start.getTime() + (durationMinutes * 60 * 1000));
   return end.toISOString();
 }
